@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apple Device Kernel Panic Log Analyzer</title>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="container">
+    
+    <header>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        v1.0 Database Loaded
+      </div>
+      <h1>Panic Log Analyzer</h1>
+      <p class="subtitle">Decode Apple hardware kernel panic logs and identify component failures instantly.</p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('selector-tab')">
+        <span style="font-size: 1.1rem;">⚡</span> Dropdowns
+      </button>
+      <button class="tab-btn" onclick="switchTab('parser-tab')">
+        <span style="font-size: 1.1rem;">📄</span> Log Parser
+      </button>
+      <button class="tab-btn" onclick="switchTab('database-tab')">
+        <span style="font-size: 1.1rem;">🔍</span> Browse Database
+      </button>
+    </div>
+
+    <!-- Error Alert Banner -->
+    <div id="error-alert" class="error-box">
+      <h3 style="margin-bottom: 0.5rem; font-family:'Outfit'; font-weight:700;">Connection Issue</h3>
+      <p id="error-message">Could not fetch panic logs dataset from the remote server. Using local fallback database.</p>
+    </div>
+
+    <!-- Main Card container -->
+    <div class="card" id="main-card">
+      
+      <!-- LOADING SPINNER -->
+      <div id="loading-state" class="loader-container">
+        <div class="spinner"></div>
+        <p style="color: var(--text-secondary); font-family: 'Outfit'; font-weight: 500;">Loading Panic Log Database...</p>
+      </div>
+
+      <!-- TAB 1: DROPDOWNS -->
+      <div id="selector-tab" class="tab-content">
+        <div class="analyzer-grid">
+          
+          <!-- Panic Type Select -->
+          <div class="form-group">
+            <label for="panic-type-select">1. Panic Type</label>
+            <div class="select-wrapper">
+              <select id="panic-type-select" disabled>
+                <option value="">-- Choose Type --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Panic Code Select -->
+          <div class="form-group">
+            <label for="panic-code-select">2. Panic Code</label>
+            <div class="select-wrapper">
+              <select id="panic-code-select" disabled>
+                <option value="">-- Select Type First --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Error Code Select -->
+          <div class="form-group">
+            <label for="error-code-select">3. Error Code</label>
+            <div class="select-wrapper">
+              <select id="error-code-select" disabled>
+                <option value="">-- Select Code First --</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Result Container -->
+        <div class="solution-container" id="solution-box">
+          <div class="solution-header">
+            <span class="solution-title">🔧 Diagnosed Hardware Repair Solution</span>
+            <button class="btn-copy" id="copy-btn" onclick="copySolution()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <!-- Solution displayed as a bold label -->
+          <div class="solution-label" id="solution-text">
+            <strong>Select all dropdown fields to view the solution.</strong>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button class="btn-reset" onclick="resetDropdowns()">
+            <span>🔄</span> Reset Selector
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 2: RAW LOG ANALYZER -->
+      <div id="parser-tab" class="tab-content">
+        <p class="log-parser-desc">
+          Paste the raw text of the panic log report below. The analyzer will automatically scan for matching error codes, sensors, and panic signatures to suggest solutions.
+        </p>
+        <div class="textarea-wrapper">
+          <textarea id="log-input" placeholder='Paste your panic log here... (e.g., "panic(cpu 0 caller 0xfffffff01bf8a77c): SMC PANIC - ASSERTION... Sensor array (1)... Error Code: 0X80000")'></textarea>
+        </div>
+        <button class="btn-analyze" onclick="analyzeRawLog()">
+          <span>🔍</span> Analyze Log Report
+        </button>
+
+        <div class="parser-results" id="parser-results-wrapper">
+          <h3 style="margin-bottom: 1rem; font-family:'Outfit'; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;">Diagnostic Results</h3>
+          <div id="parser-results-container"></div>
+        </div>
+      </div>
+
+      <!-- TAB 3: SEARCHABLE DATABASE -->
+      <div id="database-tab" class="tab-content">
+        <div class="db-controls">
+          <div class="search-input-wrapper">
+            <input type="text" class="search-input" id="db-search" placeholder="Search by panic type, code, error, or solution..." oninput="filterDatabaseTable()">
+          </div>
+          <div class="db-count" id="db-row-count">Showing 0 entries</div>
+        </div>
+
+        <div class="db-table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 25%;">Panic Type</th>
+                <th style="width: 25%;">Panic Code</th>
+                <th style="width: 20%;">Error Code</th>
+                <th style="width: 30%;">Solution</th>
+              </tr>
+            </thead>
+            <tbody id="db-table-body">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <footer>
+      <p>Apple Device Kernel Panic Log Analyzer &copy; 2026</p>
+      <p>Technician Resource Database &bull; <a href="https://mobicationhub.com/" target="_blank" rel="noopener">Mobication Hub</a> Reference</p>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
